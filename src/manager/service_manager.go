@@ -14,8 +14,8 @@ func (sm *serviceManager) GetNasabahService() service.NasabahService {
 	return sm.nasabahService
 }
 
-func NewServiceManager(repoManager RepositoryManager) ServiceManager {
-	nasabahService := service.NewNasabahService(repoManager.GetNasabahRepository())
+func NewServiceManager(repoManager RepositoryManager, secretKey string) ServiceManager {
+	nasabahService := service.NewNasabahService(repoManager.GetNasabahRepository(), secretKey)
 
 	return &serviceManager{
 		nasabahService: nasabahService,

@@ -28,7 +28,9 @@ func NewServer() Server {
 		return nil
 	}
 
-	service := manager.NewServiceManager(repository)
+	secretKey := "asdkjashd&%adsadbadsaduihj_adsiduasidhasdbasdjliuwhdaskd"
+
+	service := manager.NewServiceManager(repository, secretKey)
 
 	engine := gin.Default()
 

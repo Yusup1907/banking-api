@@ -12,7 +12,6 @@ import (
 type NasabahRepository interface {
 	AddNasabah(nasabah *model.Nasabah) error
 	FindByEmail(email string) (*model.Nasabah, error)
-	FindByEmailAndPassword(email, password string) (*model.Nasabah, error)
 }
 
 type nasabahRepository struct {
@@ -50,21 +49,6 @@ func (n *nasabahRepository) FindByEmail(email string) (*model.Nasabah, error) {
 	}
 
 	return nil, nil // Return nil if the nasabah with the given email is not found
-}
-
-func (n *nasabahRepository) FindByEmailAndPassword(email, password string) (*model.Nasabah, error) {
-	nasabahs, err := readNasabahFromFile(n.filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, nasabah := range nasabahs {
-		if nasabah.Email == email && nasabah.Password == password {
-			return nasabah, nil
-		}
-	}
-
-	return nil, nil // Return nil if the nasabah with the given username and password is not found
 }
 
 func readNasabahFromFile(filePath string) ([]*model.Nasabah, error) {

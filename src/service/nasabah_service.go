@@ -13,6 +13,7 @@ import (
 
 type NasabahService interface {
 	RegisterNasabah(nasabah *model.Nasabah) error
+	Login(email, password string) (string, error)
 }
 
 type nasabahService struct {
@@ -46,18 +47,18 @@ func (s *nasabahService) RegisterNasabah(nasabah *model.Nasabah) error {
 }
 
 func (s *nasabahService) Login(email, password string) (string, error) {
-	nasabah, err := s.nasabahRepo.FindByEmailAndPassword(email, password)
+	nasabah, err := s.nasabahRepo.FindByEmail(email)
 	if err != nil {
 		return "", err
 	}
 
 	if nasabah == nil {
-		return "", errors.New("invalid email or password")
+		return "", errors.New("invalid email")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(nasabah.Password), []byte(password))
 	if err != nil {
-		return "", errors.New("invalid email or password")
+		return "", errors.New("invalid password")
 	}
 
 	// Generate a new JWT token
