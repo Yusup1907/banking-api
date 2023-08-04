@@ -1,23 +1,31 @@
 package manager
 
-import "github.com/Yusup1907/banking-api/src/service"
+import (
+	"sync"
+
+	"github.com/Yusup1907/banking-api/src/service"
+)
 
 type ServiceManager interface {
 	GetNasabahService() service.NasabahService
 }
 
 type serviceManager struct {
-	nasabahService service.NasabahService
+	repositoryManager RepositoryManager
+	nasabahService    service.NasabahService
 }
 
+var onceLoadNasabahService sync.Once
+
 func (sm *serviceManager) GetNasabahService() service.NasabahService {
+	onceLoadNasabahService.Do(func() {
+		sm.nasabahService = service.NewNasabahService(sm.repositoryManager.GetNasabahRepository())
+	})
 	return sm.nasabahService
 }
 
-func NewServiceManager(repoManager RepositoryManager, secretKey string) ServiceManager {
-	nasabahService := service.NewNasabahService(repoManager.GetNasabahRepository(), secretKey)
-
+func NewServiceManager(repositoryManager RepositoryManager) ServiceManager {
 	return &serviceManager{
-		nasabahService: nasabahService,
+		repositoryManager: repositoryManager,
 	}
 }

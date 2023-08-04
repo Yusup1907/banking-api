@@ -2,23 +2,25 @@ package service
 
 import (
 	"errors"
-	"time"
 
 	"github.com/Yusup1907/banking-api/src/model"
 	"github.com/Yusup1907/banking-api/src/repository"
-	"github.com/golang-jwt/jwt"
+	"github.com/Yusup1907/banking-api/src/utils"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type NasabahService interface {
 	RegisterNasabah(nasabah *model.Nasabah) error
-	Login(email, password string) (string, error)
+	Login(loginRequest *model.LoginRequest, c *gin.Context) (*model.Nasabah, error)
+	GetAllNasabah(page int, pageSize int) ([]*model.Nasabah, error)
+	GetNasabahById(id string) (*model.Nasabah, error)
 }
 
 type nasabahService struct {
 	nasabahRepo repository.NasabahRepository
-	secretKey   string
 }
 
 func (s *nasabahService) RegisterNasabah(nasabah *model.Nasabah) error {
@@ -34,6 +36,14 @@ func (s *nasabahService) RegisterNasabah(nasabah *model.Nasabah) error {
 	// Generate UUID for the Id field
 	nasabah.Id = uuid.New().String()
 
+	if !utils.IsValidPassword(nasabah.Password) {
+		return errors.New("Password is not strong enough")
+	}
+
+	// Validasi data pengguna
+	if !utils.IsValidEmail(nasabah.Email) {
+		return errors.New("Invalid email address")
+	}
 	// Hash the password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(nasabah.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -46,39 +56,61 @@ func (s *nasabahService) RegisterNasabah(nasabah *model.Nasabah) error {
 	return s.nasabahRepo.AddNasabah(nasabah)
 }
 
-func (s *nasabahService) Login(email, password string) (string, error) {
-	nasabah, err := s.nasabahRepo.FindByEmail(email)
+func (s *nasabahService) Login(loginRequest *model.LoginRequest, c *gin.Context) (*model.Nasabah, error) {
+	session := sessions.Default(c)
+
+	existSession := session.Get("Email")
+	if existSession != nil {
+		return nil, errors.New("You are already logged")
+	}
+
+	nasabah, err := s.nasabahRepo.FindByEmail(loginRequest.Email)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if nasabah == nil {
-		return "", errors.New("invalid email")
+		return nil, errors.New("invalid email")
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(nasabah.Password), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(nasabah.Password), []byte(loginRequest.Password))
 	if err != nil {
-		return "", errors.New("invalid password")
+		return nil, errors.New("invalid password")
 	}
 
-	// Generate a new JWT token
-	token := jwt.New(jwt.SigningMethodHS256)
-	claims := token.Claims.(jwt.MapClaims)
-	claims["email"] = nasabah.Email
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+	// Set session data
+	session.Set("Email", nasabah.Email)
+	session.Set("Id", nasabah.Id)
+	session.Save()
 
-	// Sign the token with the secret key
-	tokenString, err := token.SignedString([]byte(s.secretKey))
-	if err != nil {
-		return "", err
-	}
-
-	return tokenString, nil
+	// Clear password before returning the nasabah data
+	nasabah.Password = ""
+	return nasabah, nil
 }
 
-func NewNasabahService(nasabahRepo repository.NasabahRepository, secretKey string) NasabahService {
+func (s *nasabahService) GetAllNasabah(page int, pageSize int) ([]*model.Nasabah, error) {
+	if page < 1 {
+		return nil, errors.New("invalid page number")
+	}
+	if pageSize < 1 {
+		return nil, errors.New("invalid page size")
+	}
+
+	// Panggil fungsi GetAllNasabah dari repository
+	nasabahs, err := s.nasabahRepo.GetAllNasabah(page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+
+	return nasabahs, nil
+}
+
+func (s *nasabahService) GetNasabahById(id string) (*model.Nasabah, error) {
+	return s.nasabahRepo.GetNasabahById(id)
+}
+
+func NewNasabahService(nasabahRepo repository.NasabahRepository) NasabahService {
 	return &nasabahService{
 		nasabahRepo: nasabahRepo,
-		secretKey:   secretKey,
 	}
 }
