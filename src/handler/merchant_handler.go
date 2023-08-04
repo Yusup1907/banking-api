@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 
+	"github.com/Yusup1907/banking-api/src/middleware"
 	"github.com/Yusup1907/banking-api/src/model"
 	"github.com/Yusup1907/banking-api/src/service"
 	"github.com/gin-gonic/gin"
@@ -104,11 +105,11 @@ func NewMerchantHandler(r *gin.Engine, merchantService service.MerchantService) 
 		router:          r,
 		merchantService: merchantService,
 	}
-	r.POST("/merchant", handler.CreateMerchant)
-	r.GET("/merchant", handler.GetAllMerchants)
-	r.GET("/merchant/:id", handler.GetMerchantByID)
-	r.PUT("/merchant/:id", handler.UpdateMerchant)
-	r.DELETE("/merchant", handler.DeleteMerchant)
+	r.POST("/merchant", middleware.RequireToken(), handler.CreateMerchant)
+	r.GET("/merchant", middleware.RequireToken(), handler.GetAllMerchants)
+	r.GET("/merchant/:id", middleware.RequireToken(), handler.GetMerchantByID)
+	r.PUT("/merchant/:id", middleware.RequireToken(), handler.UpdateMerchant)
+	r.DELETE("/merchant", middleware.RequireToken(), handler.DeleteMerchant)
 
 	return &handler
 }
