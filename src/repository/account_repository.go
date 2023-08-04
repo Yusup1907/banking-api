@@ -2,6 +2,7 @@ package repository
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 
@@ -9,16 +10,21 @@ import (
 	"github.com/google/uuid"
 )
 
-const accountFilePath = "../data/account.json"
+const (
+	accountFilePath = "../data/account.json"
+)
 
 type AccountRepository interface {
 	AddAccount(account *model.Account) error
+	GetAccountByID(accountID string) (*model.Account, error)
+	GetAccountByAccountNumber(accountNumber string) (*model.Account, error)
+	UpdateAccount(account *model.Account) error
 }
 
 type accountRepository struct{}
 
 func (a *accountRepository) AddAccount(account *model.Account) error {
-	accounts, err := readAccountsFromFile()
+	accounts, err := a.readAccountsFromFile()
 	if err != nil {
 		return err
 	}
@@ -28,7 +34,7 @@ func (a *accountRepository) AddAccount(account *model.Account) error {
 
 	accounts = append(accounts, account)
 
-	err = saveAccountsToFile(accounts)
+	err = a.saveAccountsToFile(accounts)
 	if err != nil {
 		return err
 	}
@@ -36,7 +42,64 @@ func (a *accountRepository) AddAccount(account *model.Account) error {
 	return nil
 }
 
-func readAccountsFromFile() ([]*model.Account, error) {
+func (a *accountRepository) GetAccountByID(accountID string) (*model.Account, error) {
+	accounts, err := a.readAccountsFromFile()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, account := range accounts {
+		if account.Id == accountID {
+			return account, nil
+		}
+	}
+
+	return nil, nil // Account not found
+}
+
+func (a *accountRepository) GetAccountByAccountNumber(accountNumber string) (*model.Account, error) {
+	accounts, err := a.readAccountsFromFile()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, account := range accounts {
+		if account.AccountNumber == accountNumber {
+			return account, nil
+		}
+	}
+
+	return nil, nil // Account not found
+}
+
+func (a *accountRepository) UpdateAccount(account *model.Account) error {
+	accounts, err := a.readAccountsFromFile()
+	if err != nil {
+		return err
+	}
+
+	found := false
+	for i, existingAccount := range accounts {
+		if existingAccount.Id == account.Id {
+			accounts[i] = account
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return errors.New("account not found")
+	}
+
+	err = a.saveAccountsToFile(accounts)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (a *accountRepository) readAccountsFromFile() ([]*model.Account, error) {
 	file, err := os.OpenFile(accountFilePath, os.O_RDONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, err
@@ -59,7 +122,7 @@ func readAccountsFromFile() ([]*model.Account, error) {
 	return accounts, nil
 }
 
-func saveAccountsToFile(accounts []*model.Account) error {
+func (a *accountRepository) saveAccountsToFile(accounts []*model.Account) error {
 	file, err := os.OpenFile(accountFilePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err

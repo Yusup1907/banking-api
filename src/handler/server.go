@@ -24,6 +24,9 @@ func (s *server) Run() {
 	// Handler
 	NewAuthenticationHandler(s.engine, s.serviceManager.GetNasabahService())
 	NewNasabahHandler(s.engine, s.serviceManager.GetNasabahService())
+	NewAccountHandler(s.engine, s.serviceManager.GetAccountService())
+	NewMerchantHandler(s.engine, s.serviceManager.GetMerchantService())
+	NewTransactionHandler(s.engine, s.serviceManager.GetPaymentService())
 
 	s.engine.Run(":8080")
 }
