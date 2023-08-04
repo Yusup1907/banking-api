@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"time"
 
 	"github.com/Yusup1907/banking-api/src/model"
 	"github.com/Yusup1907/banking-api/src/repository"
@@ -17,6 +18,7 @@ type NasabahService interface {
 	Login(loginRequest *model.LoginRequest, c *gin.Context) (*model.Nasabah, error)
 	GetAllNasabah(page int, pageSize int) ([]*model.Nasabah, error)
 	GetNasabahById(id string) (*model.Nasabah, error)
+	UpdateNasabah(nasabah *model.Nasabah) error
 }
 
 type nasabahService struct {
@@ -107,6 +109,27 @@ func (s *nasabahService) GetAllNasabah(page int, pageSize int) ([]*model.Nasabah
 
 func (s *nasabahService) GetNasabahById(id string) (*model.Nasabah, error) {
 	return s.nasabahRepo.GetNasabahById(id)
+}
+
+func (s *nasabahService) UpdateNasabah(nasabah *model.Nasabah) error {
+	existingNasabah, err := s.nasabahRepo.GetNasabahById(nasabah.Id)
+	if err != nil {
+		return err
+	}
+
+	if existingNasabah == nil {
+		return errors.New("nasabah not found")
+	}
+
+	nasabah.CreatedAt = existingNasabah.CreatedAt
+	nasabah.UpdatedAt = time.Now()
+
+	err = s.nasabahRepo.UpdateNasabah(nasabah)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewNasabahService(nasabahRepo repository.NasabahRepository) NasabahService {

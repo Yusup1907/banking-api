@@ -2,6 +2,7 @@ package repository
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"os"
 	"time"
@@ -16,6 +17,7 @@ type NasabahRepository interface {
 	FindByEmail(email string) (*model.Nasabah, error)
 	GetAllNasabah(page int, pageSize int) ([]*model.Nasabah, error)
 	GetNasabahById(id string) (*model.Nasabah, error)
+	UpdateNasabah(nasabah *model.Nasabah) error
 }
 
 type nasabahRepository struct{}
@@ -88,6 +90,35 @@ func (n *nasabahRepository) GetNasabahById(id string) (*model.Nasabah, error) {
 	}
 
 	return nil, nil // Return nil if the nasabah with the given ID is not found
+}
+
+func (n *nasabahRepository) UpdateNasabah(nasabah *model.Nasabah) error {
+	nasabahs, err := readNasabahFromFile()
+	if err != nil {
+		return err
+	}
+
+	found := false
+	for i, existingNasabah := range nasabahs {
+		if existingNasabah.Id == nasabah.Id {
+			nasabah.CreatedAt = existingNasabah.CreatedAt
+			nasabah.UpdatedAt = time.Now()
+			nasabahs[i] = nasabah
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return errors.New("nasabah not found")
+	}
+
+	err = saveNasabahToFile(nasabahs)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func readNasabahFromFile() ([]*model.Nasabah, error) {
